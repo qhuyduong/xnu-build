@@ -4,3 +4,6 @@
 [submodule "AvailabilityVersions"]
 	path = AvailabilityVersions
 	url = https://github.com/apple-oss-distributions/AvailabilityVersions
+[submodule "libdispatch"]
+	path = libdispatch
+	url = https://github.com/apple-oss-distributions/libdispatch

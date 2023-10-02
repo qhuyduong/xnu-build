@@ -28,7 +28,7 @@ libfirehose_kernel:
 	$(eval SRCROOT := $(ROOT)/libdispatch)
 	$(eval OBJROOT := $(BUILDROOT)/libfirehose_kernel.obj)
 	$(eval SYMROOT := $(BUILDROOT)/libfirehose_kernel.sym)
-	@cd $(SRCROOT) && xcodebuild install -target libfirehose_kernel -sdk macosx PRODUCT_NAME=firehose_kernel VALID_ARCHS="X86_64" OBJROOT=$(OBJROOT) SYMROOT=$(SYMROOT) DSTROOT=$(DSTROOT) FAKEROOT=$(DSTROOT)
+	@cd $(SRCROOT) && xcodebuild install -target libfirehose_kernel -sdk macosx PRODUCT_NAME=firehose_kernel VALID_ARCHS="x86_64" OBJROOT=$(OBJROOT) SYMROOT=$(SYMROOT) DSTROOT=$(DSTROOT) FAKEROOT=$(DSTROOT)
 
 xnu:
 	$(eval SRCROOT := $(ROOT)/xnu)

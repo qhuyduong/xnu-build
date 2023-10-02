@@ -13,14 +13,7 @@ endif
 
 .PHONY: patches xnu kernel_collections
 
-all: patches xnu kernel_collections
-
-patches:
-	@for patch in $(shell find $(ROOT)/patches); do \
-		if patch -N -s --dry-run < $${patch} > /dev/null 2>&1; then \
-			patch < $${patch}; \
-		fi; \
-	done
+all: xnu kernel_collections
 
 $(FRAMEWORK)/Headers/AvailabilityVersions.h:
 	@echo "Installing AvailabilityVersions"

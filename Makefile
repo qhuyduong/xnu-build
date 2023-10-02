@@ -56,4 +56,3 @@ kernel_collections:
 
 install:
 	@ditto $(DIST) $(MNT)
-	@bless --folder $(MNT)/System/Library/CoreServices --bootefi --create-snapshot

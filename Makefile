@@ -5,6 +5,8 @@ DSTROOT := $(PWD)/dst
 
 .PHONY: availabilityversions patches xnu
 
+all: patches xnu_headers libfirehose_kernel xnu
+
 patches:
 	@for patch in $(shell find $(ROOT)/patches); do \
 		if patch -N -s --dry-run < $${patch} > /dev/null 2>&1; then \

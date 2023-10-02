@@ -1,3 +1,89 @@
+diff --git a/xnu/bsd/net/skywalk_stubs.c b/xnu/bsd/net/skywalk_stubs.c
+index ddfdd748..152f83a1 100644
+--- a/xnu/bsd/net/skywalk_stubs.c
++++ b/xnu/bsd/net/skywalk_stubs.c
+@@ -135,6 +135,9 @@ STUB(kern_packet_get_transport_last_packet);
+ STUB(kern_packet_get_transport_traffic_background)
+ STUB(kern_packet_get_transport_traffic_realtime)
+ STUB(kern_packet_set_compression_generation_count);
++STUB(kern_packet_set_fpd_command);
++STUB(kern_packet_set_fpd_context_id);
++STUB(kern_packet_set_fpd_sequence_number);
+ STUB(kern_packet_set_flow_uuid);
+ STUB(kern_packet_set_inet_checksum);
+ STUB(kern_packet_set_headroom);
+diff --git a/xnu/bsd/skywalk/packet/os_packet.h b/xnu/bsd/skywalk/packet/os_packet.h
+index 170382f0..9ad34ed7 100644
+--- a/xnu/bsd/skywalk/packet/os_packet.h
++++ b/xnu/bsd/skywalk/packet/os_packet.h
+@@ -875,6 +875,13 @@ extern void kern_pbufpool_free_buflet(const kern_pbufpool_t pp,
+     kern_buflet_t pbuf);
+ extern void kern_pbufpool_destroy(kern_pbufpool_t);
+ extern kern_segment_idx_t kern_segment_get_index(const kern_segment_t);
++
++/*
++ * FPD.
++ */
++extern errno_t kern_packet_set_fpd_command(const kern_packet_t, uint8_t);
++extern errno_t kern_packet_set_fpd_context_id(const kern_packet_t, uint16_t);
++extern errno_t kern_packet_set_fpd_sequence_number(const kern_packet_t, uint32_t);
+ __END_DECLS
+ #endif /* KERNEL */
+ #endif /* PRIVATE */
+diff --git a/xnu/bsd/skywalk/packet/packet_kern.c b/xnu/bsd/skywalk/packet/packet_kern.c
+index d52fddc4..10da9ce7 100644
+--- a/xnu/bsd/skywalk/packet/packet_kern.c
++++ b/xnu/bsd/skywalk/packet/packet_kern.c
+@@ -287,6 +287,36 @@ kern_packet_get_inet_checksum(const kern_packet_t ph, uint16_t *start,
+ 	return __packet_get_inet_checksum(ph, start, val, tx);
+ }
+ 
++errno_t
++kern_packet_set_fpd_command(const kern_packet_t ph,
++							uint8_t cmd)
++{
++	errno_t result;
++
++	if (cmd > 7)
++		return 22;
++	result = 0;
++	PKT_ADDR(ph)->pkt_fpd_metadata |= ((cmd & 7) << 6) | 0x8000;
++	return result;
++}
++
++errno_t
++kern_packet_set_fpd_sequence_number(const kern_packet_t ph,
++									uint32_t seq_num)
++{
++	PKT_ADDR(ph)->pkt_fpd_seqnum = seq_num;
++	PKT_ADDR(ph)->pkt_fpd_metadata |= 0x8000;
++	return 0;
++}
++
++errno_t
++kern_packet_set_fpd_context_id(const kern_packet_t ph,
++							   uint16_t ctx_id)
++{
++	PKT_ADDR(ph)->pkt_fpd_metadata |= ctx_id & 0x3F | 0x8000;
++	return 0;
++}
++
+ void
+ kern_packet_set_flow_uuid(const kern_packet_t ph, const uuid_t flow_uuid)
+ {
+diff --git a/xnu/bsd/skywalk/packet/packet_var.h b/xnu/bsd/skywalk/packet/packet_var.h
+index 001d2a1d..4a766c57 100644
+--- a/xnu/bsd/skywalk/packet/packet_var.h
++++ b/xnu/bsd/skywalk/packet/packet_var.h
+@@ -474,6 +474,8 @@ struct __kern_packet {
+ 
+ 	void *      pkt_priv;   /* free to use for every layer */
+ 
++	uint32_t               pkt_fpd_seqnum;   // @ 0xd0
++	uint16_t               pkt_fpd_metadata; // @ 0xd4
+ 
+ 	/*
+ 	 * Kernel specific.
 diff --git a/xnu/bsd/sys/make_symbol_aliasing.sh b/xnu/bsd/sys/make_symbol_aliasing.sh
 index 24fb244d..069b43ac 100755
 --- a/xnu/bsd/sys/make_symbol_aliasing.sh
@@ -11,11 +97,25 @@ index 24fb244d..069b43ac 100755
  
  if [ ! -x "${AVAILABILITY_PL}" ] ; then
      echo "Unable to locate ${AVAILABILITY_PL} (or not executable)" >&2
+diff --git a/xnu/config/Private.exports b/xnu/config/Private.exports
+index 9432f340..252f91ff 100644
+--- a/xnu/config/Private.exports
++++ b/xnu/config/Private.exports
+@@ -570,6 +570,9 @@ _kern_packet_set_wake_flag
+ _kern_packet_set_compression_generation_count
+ _kern_packet_set_expire_time
+ _kern_packet_set_expiry_action
++_kern_packet_set_fpd_command
++_kern_packet_set_fpd_context_id
++_kern_packet_set_fpd_sequence_number
+ _kern_packet_set_flow_uuid
+ _kern_packet_set_group_start
+ _kern_packet_set_group_end
 diff --git a/xnu/makedefs/MakeInc.def b/xnu/makedefs/MakeInc.def
-index 5bd6f23d..62763ab2 100644
+index 1be397e4..ab3fff8d 100644
 --- a/xnu/makedefs/MakeInc.def
 +++ b/xnu/makedefs/MakeInc.def
-@@ -642,7 +642,7 @@ LDFLAGS_KERNEL_GEN = \
+@@ -645,7 +645,7 @@ LDFLAGS_KERNEL_GEN = \
  	-Wl,-headerpad,152
  
  # LDFLAGS_KERNEL_SDK	= -L$(SDKROOT)/usr/local/lib/kernel -lfirehose_kernel
@@ -24,7 +124,7 @@ index 5bd6f23d..62763ab2 100644
  
  LDFLAGS_KERNEL_RELEASE	=
  LDFLAGS_KERNEL_DEVELOPMENT =
-@@ -884,7 +884,7 @@ INCFLAGS_IMPORT	= $(patsubst %, -I$(OBJROOT)/EXPORT_HDRS/%, $(COMPONENT_IMPORT_L
+@@ -889,7 +889,7 @@ INCFLAGS_IMPORT	= $(patsubst %, -I$(OBJROOT)/EXPORT_HDRS/%, $(COMPONENT_IMPORT_L
  INCFLAGS_EXTERN	= -I$(SRCROOT)/EXTERNAL_HEADERS
  INCFLAGS_GEN	= -I$(SRCROOT)/$(COMPONENT) -I$(OBJROOT)/EXPORT_HDRS/$(COMPONENT)
  INCFLAGS_LOCAL	= -I.

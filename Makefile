@@ -1,9 +1,9 @@
 KERNEL := development
 ROOT := $(PWD)
-BUILDROOT := $(PWD)/build
-DSTROOT := $(PWD)/dst
-KDKROOT := /Library/Developer/KDKs/KDK_13.5_22G74.kdk
-FRAMEWORK_ROOT := $(DSTROOT)/System/Library/Frameworks/Kernel.framework/Versions/A
+BUILD := $(PWD)/build
+DIST := $(PWD)/dist
+KDK := /Library/Developer/KDKs/KDK_13.5_22G74.kdk
+FRAMEWORK := $(BUILD)/System/Library/Frameworks/Kernel.framework/Versions/A
 
 ifeq ($(KERNEL), release)
 	KCSUFFIX =
@@ -22,37 +22,40 @@ patches:
 		fi; \
 	done
 
-$(FRAMEWORK_ROOT)/Headers/AvailabilityVersions.h:
+$(FRAMEWORK)/Headers/AvailabilityVersions.h:
 	@echo "Installing AvailabilityVersions"
 	$(eval SRCROOT := $(ROOT)/AvailabilityVersions)
-	@cd $(SRCROOT) && make install -j8 DSTROOT=$(DSTROOT)
+	@cd $(SRCROOT) && make install -j8 DSTROOT=$(BUILD)
 
-$(FRAMEWORK_ROOT)/PrivateHeaders: $(FRAMEWORK_ROOT)/Headers/AvailabilityVersions.h
+$(FRAMEWORK)/PrivateHeaders: $(FRAMEWORK)/Headers/AvailabilityVersions.h
 	@echo "Installing XNU headers"
 	$(eval SRCROOT := $(ROOT)/xnu)
-	$(eval OBJROOT := $(BUILDROOT)/xnu.obj)
-	$(eval SYMROOT := $(BUILDROOT)/xnu.sym)
-	@cd $(SRCROOT) && make installhdrs SDKROOT=macosx TARGET_CONFIGS="$(KERNEL) X86_64 NONE" OBJROOT=$(OBJROOT) SYMROOT=$(SYMROOT) DSTROOT=$(DSTROOT) FAKEROOT=$(DSTROOT)
+	$(eval OBJROOT := $(BUILD)/xnu.obj)
+	$(eval SYMROOT := $(BUILD)/xnu.sym)
+	@cd $(SRCROOT) && make installhdrs SDKROOT=macosx TARGET_CONFIGS="$(KERNEL) X86_64 NONE" OBJROOT=$(OBJROOT) SYMROOT=$(SYMROOT) DSTROOT=$(BUILD) FAKEROOT=$(BUILD)
 
-$(DSTROOT)/usr/local/lib/kernel/libfirehose_kernel.a: $(FRAMEWORK_ROOT)/PrivateHeaders
+$(BUILD)/usr/local/lib/kernel/libfirehose_kernel.a: $(FRAMEWORK)/PrivateHeaders
 	@echo "Building libfirehose_kernel"
 	$(eval SRCROOT := $(ROOT)/libdispatch)
-	$(eval OBJROOT := $(BUILDROOT)/libfirehose_kernel.obj)
-	$(eval SYMROOT := $(BUILDROOT)/libfirehose_kernel.sym)
-	@cd $(SRCROOT) && xcodebuild install -target libfirehose_kernel -sdk macosx PRODUCT_NAME=firehose_kernel VALID_ARCHS="x86_64" OBJROOT=$(OBJROOT) SYMROOT=$(SYMROOT) DSTROOT=$(DSTROOT) FAKEROOT=$(DSTROOT)
+	$(eval OBJROOT := $(BUILD)/libfirehose_kernel.obj)
+	$(eval SYMROOT := $(BUILD)/libfirehose_kernel.sym)
+	@cd $(SRCROOT) && xcodebuild install -target libfirehose_kernel -sdk macosx PRODUCT_NAME=firehose_kernel VALID_ARCHS="x86_64" OBJROOT=$(OBJROOT) SYMROOT=$(SYMROOT) DSTROOT=$(BUILD) FAKEROOT=$(BUILD)
 
-xnu: $(DSTROOT)/usr/local/lib/kernel/libfirehose_kernel.a
+xnu: $(BUILD)/usr/local/lib/kernel/libfirehose_kernel.a
 	@echo "Building XNU kernel"
 	$(eval SRCROOT := $(ROOT)/xnu)
-	$(eval OBJROOT := $(BUILDROOT)/xnu.obj)
-	$(eval SYMROOT := $(BUILDROOT)/xnu.sym)
-	@cd $(SRCROOT) && make install -j8 SDKROOT=macosx TARGET_CONFIGS="$(KERNEL) X86_64 NONE" CONCISE=1 LOGCOLORS=y BUILD_WERROR=0 BUILD_LTO=0 OBJROOT=$(OBJROOT) SYMROOT=$(SYMROOT) DSTROOT=$(DSTROOT) FAKEROOT=$(DSTROOT)
+	$(eval OBJROOT := $(BUILD)/xnu.obj)
+	$(eval SYMROOT := $(BUILD)/xnu.sym)
+	@cd $(SRCROOT) && make install -j8 SDKROOT=macosx TARGET_CONFIGS="$(KERNEL) X86_64 NONE" CONCISE=1 LOGCOLORS=y BUILD_WERROR=0 BUILD_LTO=0 OBJROOT=$(OBJROOT) SYMROOT=$(SYMROOT) DSTROOT=$(BUILD) FAKEROOT=$(BUILD)
+	@ditto $(BUILD)/xnu.obj/kernel$(KCSUFFIX) $(DIST)/System/Library/Kernels/
 
 kernel_collections:
 	@echo "Building kernel collections"
 	@kmutil create -v -V $(KERNEL) -a x86_64 -n boot sys \
-		--allow-missing-kdk --kdk $(KDKROOT) \
-		-B $(DSTROOT)/BootKernelExtensions.kc$(KCSUFFIX) \
-		-S $(DSTROOT)/SystemKernelExtensions.kc$(KCSUFFIX) \
-		-k $(BUILDROOT)/xnu.obj/kernel$(KCSUFFIX) \
+		--allow-missing-kdk --kdk $(KDK) \
+		-B $(BUILD)/BootKernelExtensions.kc$(KCSUFFIX) \
+		-S $(BUILD)/SystemKernelExtensions.kc$(KCSUFFIX) \
+		-k $(BUILD)/xnu.obj/kernel$(KCSUFFIX) \
 		--elide-identifier com.apple.driver.AppleIntelTGLGraphicsFramebuffer
+	@ditto $(BUILD)/BootKernelExtensions.kc$(KCSUFFIX) $(DIST)/System/Library/KernelCollections/
+	@ditto $(BUILD)/SystemKernelExtensions.kc$(KCSUFFIX) $(DIST)/System/Library/KernelCollections/

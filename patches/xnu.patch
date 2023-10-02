@@ -1,0 +1,35 @@
+diff --git a/xnu/bsd/sys/make_symbol_aliasing.sh b/xnu/bsd/sys/make_symbol_aliasing.sh
+index 24fb244d..069b43ac 100755
+--- a/xnu/bsd/sys/make_symbol_aliasing.sh
++++ b/xnu/bsd/sys/make_symbol_aliasing.sh
+@@ -34,7 +34,7 @@ fi
+ SDKROOT="$1"
+ OUTPUT="$2"
+ 
+-AVAILABILITY_PL="${SDKROOT}/${DRIVERKITROOT}/usr/local/libexec/availability.pl"
++AVAILABILITY_PL="${FAKEROOT}/usr/local/libexec/availability.pl"
+ 
+ if [ ! -x "${AVAILABILITY_PL}" ] ; then
+     echo "Unable to locate ${AVAILABILITY_PL} (or not executable)" >&2
+diff --git a/xnu/makedefs/MakeInc.def b/xnu/makedefs/MakeInc.def
+index 5bd6f23d..62763ab2 100644
+--- a/xnu/makedefs/MakeInc.def
++++ b/xnu/makedefs/MakeInc.def
+@@ -642,7 +642,7 @@ LDFLAGS_KERNEL_GEN = \
+ 	-Wl,-headerpad,152
+ 
+ # LDFLAGS_KERNEL_SDK	= -L$(SDKROOT)/usr/local/lib/kernel -lfirehose_kernel
+-LDFLAGS_KERNEL_SDK	= -L$(SDKROOT)/usr/local/lib/kernel -L$(SDKROOT)/usr/local/lib/kernel/platform
++LDFLAGS_KERNEL_SDK	= -L$(FAKEROOT)/usr/local/lib/kernel -lfirehose_kernel
+ 
+ LDFLAGS_KERNEL_RELEASE	=
+ LDFLAGS_KERNEL_DEVELOPMENT =
+@@ -884,7 +884,7 @@ INCFLAGS_IMPORT	= $(patsubst %, -I$(OBJROOT)/EXPORT_HDRS/%, $(COMPONENT_IMPORT_L
+ INCFLAGS_EXTERN	= -I$(SRCROOT)/EXTERNAL_HEADERS
+ INCFLAGS_GEN	= -I$(SRCROOT)/$(COMPONENT) -I$(OBJROOT)/EXPORT_HDRS/$(COMPONENT)
+ INCFLAGS_LOCAL	= -I.
+-INCFLAGS_SDK	= -I$(SDKROOT)/usr/local/include/kernel
++INCFLAGS_SDK	= -I$(FAKEROOT)/usr/local/include/kernel
+ INCFLAGS_PLATFORM = -I$(SDKROOT)/$(KPINCDIR)/platform
+ 
+ INCFLAGS	= $(INCFLAGS_LOCAL) $(INCFLAGS_GEN) $(INCFLAGS_IMPORT) $(INCFLAGS_EXTERN) $(INCFLAGS_MAKEFILE) $(INCFLAGS_SDK) $(INCFLAGS_PLATFORM)

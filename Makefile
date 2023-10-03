@@ -4,7 +4,6 @@ BUILD := $(ROOT)/build
 DIST := $(ROOT)/dist
 KDK := /Library/Developer/KDKs/KDK_13.5_22G74.kdk
 FRAMEWORK := $(BUILD)/System/Library/Frameworks/Kernel.framework/Versions/A
-MNT := $(ROOT)/mnt
 
 ifeq ($(KERNEL), release)
 	KCSUFFIX =
@@ -53,6 +52,3 @@ kernel_collections:
 		--elide-identifier com.apple.driver.AppleIntelTGLGraphicsFramebuffer
 	@ditto $(BUILD)/BootKernelExtensions.kc$(KCSUFFIX) $(DIST)/System/Library/KernelCollections/
 	@ditto $(BUILD)/SystemKernelExtensions.kc$(KCSUFFIX) $(DIST)/System/Library/KernelCollections/
-
-install:
-	@ditto $(DIST) $(MNT)
